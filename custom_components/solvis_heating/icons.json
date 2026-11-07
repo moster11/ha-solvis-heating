@@ -1,0 +1,33 @@
+{
+  "entity": {
+    "sensor": {
+      "volume_stream_warm_water": { "default": "mdi:water-pump" },
+      "volume_stream_solar": { "default": "mdi:water-pump" },
+      "solar_power": { "default": "mdi:solar-power-variant-outline" },
+      "solar_yield": { "default": "mdi:solar-power-variant" },
+      "runtime_burner": { "default": "mdi:fire" },
+      "total_burner_start": { "default": "mdi:counter" },
+      "total_burner_2nd_start": { "default": "mdi:counter" },
+      "runtime_solar_pump": { "default": "mdi:timer-outline" },
+      "controller_time": { "default": "mdi:clock-outline" },
+      "analog_output": { "default": "mdi:sine-wave" }
+    },
+    "binary_sensor": {
+      "burner": { "default": "mdi:fire-off", "state": { "on": "mdi:fire" } },
+      "burner_s2": { "default": "mdi:fire-off", "state": { "on": "mdi:fire" } },
+      "solar_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "warm_water_station_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "heating_circuit_1_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "heating_circuit_2_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "heating_circuit_3_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "circulation_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "oven_pump": { "default": "mdi:pump-off", "state": { "on": "mdi:pump" } },
+      "heating_circuit_1_mixer_open": { "default": "mdi:valve" },
+      "heating_circuit_1_mixer_close": { "default": "mdi:valve" },
+      "heating_circuit_2_mixer_open": { "default": "mdi:valve" },
+      "heating_circuit_2_mixer_close": { "default": "mdi:valve" },
+      "solar_valve_1": { "default": "mdi:valve-closed", "state": { "on": "mdi:valve-open" } },
+      "solar_valve_2": { "default": "mdi:valve-closed", "state": { "on": "mdi:valve-open" } }
+    }
+  }
+}

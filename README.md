@@ -1,124 +1,92 @@
-#  HA [Solvis](http://www.solvis.de) Heating custom component
+# Solvis Heating für Home Assistant
 
-[![GitHub Release][releases-shield]][releases]
-[![License][license-shield]](LICENSE)
+Liest die Werte einer Solvis-Heizung (SolvisControl SC-2) über die XML-Schnittstelle der **SolvisRemote** aus.
 
-[![pre-commit][pre-commit-shield]][pre-commit]
+Fork von [Lurchi70/ha-solvis-heating](https://github.com/Lurchi70/ha-solvis-heating) (0.0.x), ab 1.0.0 grundlegend überarbeitet. Getestet mit SolvisMax 6 (Gas, Solarthermie, Warmwasserstation) und SolvisRemote.
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+## Was 1.0.0 gegenüber 0.0.x ändert
 
-## Important note: troubleshooting
-If you don't manage to get the data from your heating device, please [enable debug logging](#debug-logging) and `log_response`. This will provide you with information for continued investigation. 
+**Behobene Fehler**
+- Der Optionen-Dialog stürzte seit HA 2025.12 ab und war auch vorher wirkungslos (der Code las nur die Erstkonfiguration).
+- Fehlgeschlagene Abrufe lieferten still leere Daten. Alle Entitäten sprangen kurz auf `unknown`, was falsche Zustandswechsel und Trigger erzeugte. Jetzt werden einzelne Aussetzer überbrückt; erst nach 3 Fehlschlägen in Folge werden die Entitäten `unavailable`.
+- Nicht angeschlossene Fühler (Rohwert 250,0 °C) und nicht vorhandene Zähler (65535) erscheinen als `unknown` statt als Messwert.
+- Solar-Spreizung als Temperaturdifferenz (`temperature_delta`) statt als Absoluttemperatur in K.
+- Durchflüsse mit korrekter Einheit (L/min, L/h) und Geräteklasse. Der `customize.yaml`-Workaround entfällt.
+- Ofen- und Ost-West-Option überschrieben Brenner Stufe 2 bzw. Pumpe Heizkreis 3.
 
-If all of this doesn't help, use the home assistant forum. I cannot give everyone personal assistance and please don't create github issues unless you are sure there is a bug.
-Check the [wiki](https://github.com/Lurchi70/ha-solvis-heating/wiki) for help and other details on the functionality of this component.
+**Entfernt**
+- `burner_capacity` und `burner_consumption`: Diese Werte waren Laufzeit in ganzen Stunden × fixe 27 kW und damit keine brauchbare Verbrauchsangabe. Für Gasverbrauch einen echten Gaszähler verwenden.
+- Abhängigkeit `sc2xmlreader`: Der Decoder steckt jetzt in der Integration (`parser.py`).
 
-# Introduction
-The `solvis_heating` custom component uses the XML datainterface of the solvis remote extension of the heating system. 
-The [Solvis](http://www.solvis.de) Heating Device is providing a lot of information about its state. To access this information the Heating device must be acessible via a computer network. [Solvis](http://www.solvis.de) provides the solvis remote as an additional device to make the heating available. Beside the officially documented http interface, the remote also provides an xml interface. 
-This allows you to get details from your [Solvis](http://www.solvis.de) Heating device and integrate these into your Home Assistant installation.
+**Neu**
+- Abruf asynchron über die HTTP-Session von Home Assistant, Standardintervall 30 s (einstellbar 10–300 s).
+- Funktionierende Optionen (Komponenten, Intervall), Neukonfiguration (Host, Zugangsdaten), Neuanmeldung bei abgelehntem Passwort.
+- Deutsche und englische Entitätsnamen.
+- Zusätzliche Werte, standardmäßig deaktiviert: Reglerzeit, Fühler S14–S16, Raumfühler 1–3, Analogausgänge 1–4.
+- Geräteinfo mit Anlagentyp und Systemnummer des Reglers, Diagnose-Download inkl. Rohdaten.
 
-Before being able to use the integration, you have to own a solvis remote device and have it attached, configured and available in your network. The communication with solvice remote and decoding of the returned data is done by the pypi package [sc2xmlreader](https://pypi.org/project/sc2xmlreader/). 
+## Installation (HACS)
 
-## XML interface vs. MODBUS Interface
-Since Solvis SC2 Centralcontroller version MA205 (or higher) the data can be retrieved via the MODBUS interface (see [Solvis Heizung via Modbus auslesen und steuern](https://github.com/saruter/smarthome/blob/master/docs/projekte/solvis-heizung.md))
+1. HACS → ⋮ → **Benutzerdefinierte Repositories** → `https://github.com/moster11/ha-solvis-heating`, Typ **Integration**.
+2. **Solvis Heating** herunterladen und Home Assistant neu starten.
+3. **Einstellungen → Geräte & Dienste → Integration hinzufügen → Solvis Heating.**
 
-If you have an older Centralcontroller version, MODBUS is not available. But the XML Interface is available (currently i don't know since which version of SC2 - may be someone can tell me)
+### Umstieg von Lurchi70/ha-solvis-heating
 
-Due to my own heating system, I could only test the XML interface agains a SolvisMax 6 with Solvis Remote 200. 
-As far as I know, it should be possible to use this against other system as well, as long as there is a Solvis Remote available.
-## Sample integration into HA
-The provided data can be integrated into HA Dashboard. 
-Sample Dashboard for heating overview 
-![Sample Screenshot for integration into HA](screenshots/screenshot01.png)
+Bestehende Einträge werden beim ersten Start automatisch migriert. Entity-IDs, eigene Namen, Bereiche und Dashboards bleiben erhalten.
 
-Sample Dashboard for solar details 
-![Sample Screenshot for details about solar](screenshots/screenshot02.PNG)
+1. In HACS die alte Version entfernen. Dabei **nicht** neu starten.
+2. Diesen Fork wie oben hinzufügen und herunterladen.
+3. Home Assistant neu starten.
+4. Falls vorhanden, die `customize`-Einträge für `sensor.solvis_remote_volume_stream_*` aus der `configuration.yaml` löschen.
 
-## integration into Energy Dashboard
-Burner consumption and solar yield are also available in the energy dashboard (unfortunately und the label of "gas consumption" ...)
-To add the values, just add "burner consumption" and "solar yield" to the dashboard:
-![Sample Screenshot in "Edit Enery Dashboard"](screenshots/edit_energy_dashboard.PNG)
+Die Migration entfernt die beiden Brenner-Schätzwerte, übernimmt die Komponenten-Auswahl und stellt das alte Standardintervall von 10 s auf 30 s um.
 
-...and the values will be part of the enery dashboard:
-![Sample Screenshot for integration into HA](screenshots/energy_dashboard.PNG)
-## Installation
+## Entitäten
 
-[![hacs][hacsbadge]][hacs]
-- Install the pypi package [sc2xmlreader](https://pypi.org/project/sc2xmlreader/) at your HA installation (prerequsite)
-- Install manually by copying the files in 'custom_components/solvis_heating' to a new 'custom_components/solvis_heating' directory in HA config directory.
-- Create 'customize.yaml' in config directory and add 
+| Schlüssel | Kanal | Inhalt |
+|---|---|---|
+| `temperature_buffer_top` | S1 | Speicher oben |
+| `temperature_warm_water_station` | S2 | Warmwasser |
+| `temperature_buffer_reference` | S3 | Speicherreferenz |
+| `temperature_buffer_heating_top` | S4 | Heizungspuffer oben |
+| `temperature_solar_flow` / `_return` | S5 / S6 | Solar Vorlauf / Rücklauf |
+| `solar_pressure` | S7 | Solardruck (nur mit Drucksensor) |
+| `temperature_solar_panel` | S8 | Kollektor |
+| `temperature_buffer_heating_bottom` | S9 | Heizungspuffer unten |
+| `temperature_outside` | S10 | Außentemperatur |
+| `temperature_circulation` | S11 | Zirkulation |
+| `temperature_heating_circuit_1_flow` / `2_flow` | S12 / S13 | Vorlauf Heizkreis 1 / 2 |
+| `temperature_sensor_s14` / `s15` / `s16` | S14–S16 | freie Fühler (deaktiviert) |
+| `temperature_solar_panel2` / `temperature_oven` | S16 | Kollektor 2 (Ost-West) / Ofen |
+| `volume_stream_solar` | S17 | Durchfluss Solar (L/h) |
+| `volume_stream_warm_water` | S18 | Durchfluss Warmwasser (L/min) |
+| `temperature_room_1..3` | RF1–3 | Raumfühler (deaktiviert) |
+| `analog_output_1..4` | AO1–4 | Analogausgänge, Rohwert (deaktiviert) |
+| `runtime_burner`, `total_burner_start`, `total_burner_2nd_start` | Z1–Z3 | Laufzeit / Starts Brenner |
+| `runtime_solar_pump` | Z4 | Laufzeit Solarpumpe |
+| `solar_yield`, `solar_power` | SE, SL | Solarertrag (kWh) / -leistung (kW) |
+| `temperature_solar_diff_flow_return` | S5−S6 | Solar Spreizung (K) |
+| `controller_time`, `last_update` | – | Reglerzeit (deaktiviert) / letzter erfolgreicher Abruf |
+
+Schaltausgänge als Binärsensoren: A1 Solarpumpe, A2 Pumpe Warmwasserstation, A3/A4/A6 Pumpe Heizkreis 1/2/3, A5 Zirkulationspumpe, A6/A7 Solarventile (Ost-West), A8–A11 Mischer Heizkreis 1/2, A12 Brenner, A13 Brenner Stufe 2 bzw. Ofenpumpe, A14 Ausgang A14.
+
+### Solarertrag im Energie-Dashboard
+
+Home Assistant hat keine Kategorie für Solarthermie. `solar_yield` lässt sich als **Gas**-Quelle eintragen.
+
+## Grenzen
+
+- Nur lesend: Die XML-Schnittstelle erlaubt keine Steuerung. Steuerung ginge nur per Modbus (ab SC-2-Firmware MA205), das unterstützt diese Integration nicht.
+- 15 Statusbytes im Datensatz sind noch nicht entschlüsselt. Der Diagnose-Download enthält die Rohdaten.
+
+## Entwicklung
+
+```bash
+pip install -r requirements_test.txt
+pytest
 ```
-sensor.solvis_remote_volume_stream_solar:
-  unit_of_measurement: 'l/h'
 
-sensor.solvis_remote_volume_stream_warm_water:
-  unit_of_measurement: 'l/min'
-``` 
-- Restart HA 
-- In HA Setting - use "Add Integration" and search for Solvis
-- Configure the integration test (ui configuration)
-- Configure your dashboard
+## Lizenz
 
-## Sensors
-The following sensors are available:
-
-| name                         | Unit   | Description   |
-|------------------------------|--------|:-------------------------------------------|
-| last_update                  |        | Time since latest data update.                |
-| runtime_solar_pump           | h      | Total output runtime of the solar pump. |
-| solar_power                  | W      | Current solarpower from the solar panels. |
-| solar_pressure               | bar    | Current pressure in the solar pipes. |
-| solar_yield                  | kWh    | Total yield of the solar panels to the heating system |
-| temperature_buffer_reference | °C     | current refernce temperature in the buffer |
-| temperature_H_buffer_top     | °C     | current temperature in the H buffer top |
-| temperature_H_buffer_bottom  | °C     | current temperature in the H buffer bottom |
-| temperature_circulation      | °C     | current temperature warm water circulation |
-| temperature_heating_circuit_1_flow | °C     | current flow temperature heating circuit 1 |
-| temperature_heating_circuit_2_flow | °C     | current flow temperature heating circuit 2 |
-| temperature_outside          | °C     | current temperature out the building |
-| temperature_solar_flow       | °C     | current flow temperature of solar heating  |
-| temperature_solar_panel      | °C     | current temperature on the solar panel(s)  |
-| temperature_solar_return     | °C     | current return temperature of solar heating  |
-| volume_solar_pump            | l/h    | current volume of fluid stream in solar heating  |
-| volume_warm_water            | l/min  | current volume of fluid stream in warm water station  |
-
-## Binary Sensors
-The following binary sensors are available:
-
-| name                         | Description   |
-|------------------------------|:-------------------------------------------|
-| burner                       | oil/gas buner started. |
-| burner_s2                    | oil/gas s2 buner started |
-| circulation_pump             | warm water circulation pump running |
-| heating_circuit_1_mixer_open | indicates that the heating circuit 1 increases the flow temperture |
-| heating_circuit_1_mixer_close| indicates that the heating circuit 1 decreases the flow temperture |
-| heating_circuit_1_pump       | heating circuit 1 pump is running |
-| heating_circuit_2_mixer_open | indicates that the heating circuit 2 increases the flow temperture |
-| heating_circuit_2_mixer_close| indicates that the heating circuit 2 decreases the flow temperture |
-| heating_circuit_2_pump       | heating circuit 2 pump is running |
-| heating_circuit_3_pump       | heating circuit 3 pump is running |
-| recovery                     | recovery is active |
-| solar_pump                   | solar pump is active |
-| solar_2_pump                 | second solar pump is active |
-| warm_water_station_pump      | warm water station pump is started |
-
-## Known Issues
-- Translation 
-- Modbus integration as option instead of XML when SC is supporting that 
-- Additional logging (debug / setup / missing components / configuration errors)
-- Reconfigure of component
-- Solvis Brand Icon
-- assisted identification of Solvis Hardware
-
-[commits]: https://github.com/Lurchi70/ha-solvis-heating/commits/main
-[hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/Lurchi70/ha-solvis-heating?style=for-the-badge
-[pre-commit]: https://github.com/pre-commit/pre-commit
-[pre-commit-shield]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/Lurchi70/ha-solvis-heating.svg?style=for-the-badge
-[releases]: https://github.com/Lurchi70/ha-solvis-heating/releases
-[user_profile]: https://github.com/Lurchi70
+MIT. Ursprünglicher Code und Datenformat © 2023 Lurchi70.

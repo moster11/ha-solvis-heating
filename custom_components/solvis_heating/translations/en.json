@@ -1,56 +1,255 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect SolvisRemote",
+        "description": "The integration reads the XML interface of the SolvisRemote.",
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password"
         },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "east_west": " System has East-West-Solar Panels attached",
-                    "host": "Host",
-                    "oven": "A solid fuel oven is attached to the heating",
-                    "password": "Password",
-                    "burner_power": "Power of the Burner (kW)",
-                    "solar": "System has Solar Panels attached",
-                    "update_interval": "Updatetime in seconds to read data from Solvis Remote",
-                    "username": "Username",
-                    "warmwater_station": "System has a Warm-Water Station"
-                },
-                "description": "Provide the credentials (IP-Adresse oder FQDN) of Solvis Remote and the options of your solvis heating device.",
-                "title": "Connectiondata of Solvis Remote and Options"
-            }
+        "data_description": {
+          "host": "IP address or host name of the SolvisRemote.",
+          "username": "Default: solvis",
+          "password": "Default: solvis"
         }
+      },
+      "features": {
+        "title": "Installed components",
+        "description": "Select what is connected to your Solvis system.",
+        "data": {
+          "warmwater_station": "Warm water station",
+          "solar": "Solar thermal",
+          "east_west": "East/west solar field",
+          "oven": "Solid fuel oven",
+          "update_interval": "Polling interval"
+        },
+        "data_description": {
+          "east_west": "Requires solar thermal. Uses sensor S16 and outputs A6/A7.",
+          "oven": "Uses sensor S16 and output A13.",
+          "update_interval": "Seconds between two reads (10–300)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "The SolvisRemote at {host} rejected the credentials.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Change connection",
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "IP address or host name of the SolvisRemote.",
+          "username": "Default: solvis",
+          "password": "Default: solvis"
+        }
+      }
     },
-    "entity": {
-        "sensor": {
-            "solar_power": {
-                "name": "Solar Power"
-            }
-        }
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "invalid_data": "The device answered, but not with SolvisRemote data",
+      "unknown": "Unexpected error",
+      "east_west_requires_solar": "East/west requires solar thermal",
+      "oven_conflicts_east_west": "Oven and east/west solar both use sensor S16 and cannot be combined"
     },
-    "options": {
-        "error": {
-            "invalid_east_west": "Without Solar, East-West option is invalid.",
-            "update_too_fast": "Updateinterval below 10 Seconds produces too much data.",
-            "update_too_slow": "More than 60 Seconds Update-Interval dies not produce meaningfulldata for warmwater option."
-        },
-        "step": {
-            "init": {
-                "data": {
-                    "burner_power": "Power of the Burner (kW)",
-                    "east_west": "East-West-Solar: The System has East-West-Solar Panels attached",
-                    "oven": "Oven: An solid fuel oven is attached to the heating",
-                    "solar": "Solar: System has Solar Panels attached",
-                    "update_interval": "Updatetime: Time in seconds to read data from Solvis Remote",
-                    "warmwater_station": "Warmwater Station: System has a Warm-Water Station"
-                },
-                "description": ""
-            }
-        }
+    "abort": {
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Select what is connected to your Solvis system.",
+        "data": {
+          "warmwater_station": "Warm water station",
+          "solar": "Solar thermal",
+          "east_west": "East/west solar field",
+          "oven": "Solid fuel oven",
+          "update_interval": "Polling interval"
+        },
+        "data_description": {
+          "east_west": "Requires solar thermal. Uses sensor S16 and outputs A6/A7.",
+          "oven": "Uses sensor S16 and output A13.",
+          "update_interval": "Seconds between two reads (10–300)."
+        }
+      }
+    },
+    "error": {
+      "east_west_requires_solar": "East/west requires solar thermal",
+      "oven_conflicts_east_west": "Oven and east/west solar both use sensor S16 and cannot be combined"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_update": {
+        "name": "Last update"
+      },
+      "controller_time": {
+        "name": "Controller time"
+      },
+      "temperature_buffer_top": {
+        "name": "Buffer top"
+      },
+      "temperature_buffer_reference": {
+        "name": "Buffer reference"
+      },
+      "temperature_buffer_heating_top": {
+        "name": "Heating buffer top"
+      },
+      "temperature_buffer_heating_bottom": {
+        "name": "Heating buffer bottom"
+      },
+      "temperature_outside": {
+        "name": "Outside temperature"
+      },
+      "temperature_heating_circuit_1_flow": {
+        "name": "Heating circuit 1 flow"
+      },
+      "temperature_heating_circuit_2_flow": {
+        "name": "Heating circuit 2 flow"
+      },
+      "temperature_sensor_s14": {
+        "name": "Sensor S14"
+      },
+      "temperature_sensor_s15": {
+        "name": "Sensor S15"
+      },
+      "temperature_sensor_s16": {
+        "name": "Sensor S16"
+      },
+      "temperature_room_1": {
+        "name": "Room sensor 1"
+      },
+      "temperature_room_2": {
+        "name": "Room sensor 2"
+      },
+      "temperature_room_3": {
+        "name": "Room sensor 3"
+      },
+      "runtime_burner": {
+        "name": "Burner runtime"
+      },
+      "total_burner_start": {
+        "name": "Burner starts"
+      },
+      "total_burner_2nd_start": {
+        "name": "Burner starts stage 2"
+      },
+      "temperature_warm_water_station": {
+        "name": "Warm water"
+      },
+      "temperature_circulation": {
+        "name": "Circulation"
+      },
+      "volume_stream_warm_water": {
+        "name": "Warm water flow"
+      },
+      "temperature_solar_flow": {
+        "name": "Solar flow"
+      },
+      "temperature_solar_return": {
+        "name": "Solar return"
+      },
+      "temperature_solar_panel": {
+        "name": "Collector"
+      },
+      "temperature_solar_panel2": {
+        "name": "Collector 2"
+      },
+      "temperature_solar_diff_flow_return": {
+        "name": "Solar flow/return difference"
+      },
+      "solar_pressure": {
+        "name": "Solar pressure"
+      },
+      "volume_stream_solar": {
+        "name": "Solar flow rate"
+      },
+      "solar_power": {
+        "name": "Solar power"
+      },
+      "solar_yield": {
+        "name": "Solar yield"
+      },
+      "runtime_solar_pump": {
+        "name": "Solar pump runtime"
+      },
+      "temperature_oven": {
+        "name": "Oven"
+      },
+      "analog_output": {
+        "name": "Analog output {index}"
+      }
+    },
+    "binary_sensor": {
+      "solar_pump": {
+        "name": "Solar pump"
+      },
+      "warm_water_station_pump": {
+        "name": "Warm water station pump"
+      },
+      "heating_circuit_1_pump": {
+        "name": "Heating circuit 1 pump"
+      },
+      "heating_circuit_2_pump": {
+        "name": "Heating circuit 2 pump"
+      },
+      "heating_circuit_3_pump": {
+        "name": "Heating circuit 3 pump"
+      },
+      "circulation_pump": {
+        "name": "Circulation pump"
+      },
+      "solar_valve_1": {
+        "name": "Solar valve 1"
+      },
+      "solar_valve_2": {
+        "name": "Solar valve 2"
+      },
+      "heating_circuit_1_mixer_open": {
+        "name": "Heating circuit 1 mixer opening"
+      },
+      "heating_circuit_1_mixer_close": {
+        "name": "Heating circuit 1 mixer closing"
+      },
+      "heating_circuit_2_mixer_open": {
+        "name": "Heating circuit 2 mixer opening"
+      },
+      "heating_circuit_2_mixer_close": {
+        "name": "Heating circuit 2 mixer closing"
+      },
+      "burner": {
+        "name": "Burner"
+      },
+      "burner_s2": {
+        "name": "Burner stage 2"
+      },
+      "oven_pump": {
+        "name": "Oven pump"
+      },
+      "recovery": {
+        "name": "Output A14"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "The SolvisRemote rejected the credentials"
+    },
+    "update_failed": {
+      "message": "Reading the SolvisRemote failed: {error}"
+    }
+  }
 }

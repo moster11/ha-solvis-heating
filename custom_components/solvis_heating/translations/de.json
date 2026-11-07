@@ -1,57 +1,255 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Das Geräte ist bereits konfiguriert"
+  "config": {
+    "step": {
+      "user": {
+        "title": "SolvisRemote verbinden",
+        "description": "Die Integration liest die XML-Schnittstelle der SolvisRemote.",
+        "data": {
+          "host": "Host",
+          "username": "Benutzername",
+          "password": "Passwort"
         },
-        "error": {
-            "cannot_connect": "Verbindungsfehler",
-            "invalid_auth": "Ungültige Zugangsdaten",
-            "unknown": "Unerwarteter Fehler"
-        },
-        "step": {
-            "user": {
-                "title": "Verbindungsdaten Solvis Remote und Optionen",
-                "description": "Geben Sie hier die Zugangsdaten (IP-Adresse oder FQDN) der Solvis Remote, sowie die Ausstattungsmerkmale Ihrer Solvis Heizung an.",
-                "data": {
-                    "host": "Solvis Remote Netzwerkadresse",
-                    "username": "Solvis Remote Benutzername",
-                    "password": "Solvis Remote Kennwort",
-                    "burner_power": "Brennerleistung in kW",
-                    "east_west": "Die Ost-West-Solar Option wird genutzt",
-                    "oven": "Ein Feststoff-Ofen ist an die Heizung angeschlossen",
-                    "solar": "Heizung hat Solar Panels angeschlossen",
-                    "update_interval": "Zeitintervall in Sekunden, um die Solvis Remote abzufragen",
-                    "warmwater_station": "Die Warmwasser-Station ist installiert"
-                }
-            }
+        "data_description": {
+          "host": "IP-Adresse oder Hostname der SolvisRemote.",
+          "username": "Standard: solvis",
+          "password": "Standard: solvis"
         }
+      },
+      "features": {
+        "title": "Installierte Komponenten",
+        "description": "Wähle aus, was an deiner Solvis-Anlage angeschlossen ist.",
+        "data": {
+          "warmwater_station": "Warmwasserstation",
+          "solar": "Solarthermie",
+          "east_west": "Ost-West-Solarfeld",
+          "oven": "Feststoff-Ofen",
+          "update_interval": "Abfrageintervall"
+        },
+        "data_description": {
+          "east_west": "Nur mit Solarthermie. Belegt Fühler S16 und die Ausgänge A6/A7.",
+          "oven": "Belegt Fühler S16 und Ausgang A13.",
+          "update_interval": "Sekunden zwischen zwei Abfragen (10–300)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut anmelden",
+        "description": "Die SolvisRemote unter {host} hat die Zugangsdaten abgelehnt.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      },
+      "reconfigure": {
+        "title": "Verbindung ändern",
+        "data": {
+          "host": "Host",
+          "username": "Benutzername",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname der SolvisRemote.",
+          "username": "Standard: solvis",
+          "password": "Standard: solvis"
+        }
+      }
     },
-    "entity": {
-        "sensor": {
-            "solar_power": {
-                "name": "Solarleistung"
-            }
-        }
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Zugangsdaten",
+      "invalid_data": "Das Gerät antwortet, liefert aber keine SolvisRemote-Daten",
+      "unknown": "Unerwarteter Fehler",
+      "east_west_requires_solar": "Ost-West setzt Solarthermie voraus",
+      "oven_conflicts_east_west": "Ofen und Ost-West-Solar belegen beide Fühler S16 und lassen sich nicht kombinieren"
     },
-    "options": {
-        "error": {
-            "invalid_east_west": "Ohne Solar Option kann die Ost-West-Option nicht gewählt werden.",
-            "update_too_fast": "Updateinterval unter 10 Sekunden erzeugt zu viele Daten.",
-            "update_too_slow": "Länger als 60 Sekunden Updateintvall erzeugt keine aussagekräftigen Daten für die Warm-Wasserstation."
-        },
-        "step": {
-            "init": {
-                "data": {
-                    "burner_power": "Brennerleistung in kW",
-                    "east_west": "Die Ost-West-Solar Option wird genutzt",
-                    "oven": "Ein Feststoff-Ofen ist an die Heinzung angeschlossen",
-                    "solar": "Heizung hat Solar Panels angeschlossen",
-                    "update_time": "Zeitintervall in Sekunden, um die Solvis Remote abzufragen",
-                    "warmwater_station": "Die Warmwasser-Station ist installiert"
-                },
-                "description": "",
-                "title": "System Konfiguration"
-            }
-        }
+    "abort": {
+      "already_configured": "Gerät ist bereits eingerichtet",
+      "reauth_successful": "Erneute Anmeldung erfolgreich",
+      "reconfigure_successful": "Neukonfiguration erfolgreich"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "description": "Wähle aus, was an deiner Solvis-Anlage angeschlossen ist.",
+        "data": {
+          "warmwater_station": "Warmwasserstation",
+          "solar": "Solarthermie",
+          "east_west": "Ost-West-Solarfeld",
+          "oven": "Feststoff-Ofen",
+          "update_interval": "Abfrageintervall"
+        },
+        "data_description": {
+          "east_west": "Nur mit Solarthermie. Belegt Fühler S16 und die Ausgänge A6/A7.",
+          "oven": "Belegt Fühler S16 und Ausgang A13.",
+          "update_interval": "Sekunden zwischen zwei Abfragen (10–300)."
+        }
+      }
+    },
+    "error": {
+      "east_west_requires_solar": "Ost-West setzt Solarthermie voraus",
+      "oven_conflicts_east_west": "Ofen und Ost-West-Solar belegen beide Fühler S16 und lassen sich nicht kombinieren"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_update": {
+        "name": "Letzte Aktualisierung"
+      },
+      "controller_time": {
+        "name": "Reglerzeit"
+      },
+      "temperature_buffer_top": {
+        "name": "Speicher oben"
+      },
+      "temperature_buffer_reference": {
+        "name": "Speicherreferenz"
+      },
+      "temperature_buffer_heating_top": {
+        "name": "Heizungspuffer oben"
+      },
+      "temperature_buffer_heating_bottom": {
+        "name": "Heizungspuffer unten"
+      },
+      "temperature_outside": {
+        "name": "Außentemperatur"
+      },
+      "temperature_heating_circuit_1_flow": {
+        "name": "Vorlauf Heizkreis 1"
+      },
+      "temperature_heating_circuit_2_flow": {
+        "name": "Vorlauf Heizkreis 2"
+      },
+      "temperature_sensor_s14": {
+        "name": "Fühler S14"
+      },
+      "temperature_sensor_s15": {
+        "name": "Fühler S15"
+      },
+      "temperature_sensor_s16": {
+        "name": "Fühler S16"
+      },
+      "temperature_room_1": {
+        "name": "Raumfühler 1"
+      },
+      "temperature_room_2": {
+        "name": "Raumfühler 2"
+      },
+      "temperature_room_3": {
+        "name": "Raumfühler 3"
+      },
+      "runtime_burner": {
+        "name": "Laufzeit Brenner"
+      },
+      "total_burner_start": {
+        "name": "Brennerstarts"
+      },
+      "total_burner_2nd_start": {
+        "name": "Brennerstarts Stufe 2"
+      },
+      "temperature_warm_water_station": {
+        "name": "Warmwasser"
+      },
+      "temperature_circulation": {
+        "name": "Zirkulation"
+      },
+      "volume_stream_warm_water": {
+        "name": "Durchfluss Warmwasser"
+      },
+      "temperature_solar_flow": {
+        "name": "Solar Vorlauf"
+      },
+      "temperature_solar_return": {
+        "name": "Solar Rücklauf"
+      },
+      "temperature_solar_panel": {
+        "name": "Kollektor"
+      },
+      "temperature_solar_panel2": {
+        "name": "Kollektor 2"
+      },
+      "temperature_solar_diff_flow_return": {
+        "name": "Solar Spreizung"
+      },
+      "solar_pressure": {
+        "name": "Solardruck"
+      },
+      "volume_stream_solar": {
+        "name": "Durchfluss Solar"
+      },
+      "solar_power": {
+        "name": "Solarleistung"
+      },
+      "solar_yield": {
+        "name": "Solarertrag"
+      },
+      "runtime_solar_pump": {
+        "name": "Laufzeit Solarpumpe"
+      },
+      "temperature_oven": {
+        "name": "Ofen"
+      },
+      "analog_output": {
+        "name": "Analogausgang {index}"
+      }
+    },
+    "binary_sensor": {
+      "solar_pump": {
+        "name": "Solarpumpe"
+      },
+      "warm_water_station_pump": {
+        "name": "Pumpe Warmwasserstation"
+      },
+      "heating_circuit_1_pump": {
+        "name": "Pumpe Heizkreis 1"
+      },
+      "heating_circuit_2_pump": {
+        "name": "Pumpe Heizkreis 2"
+      },
+      "heating_circuit_3_pump": {
+        "name": "Pumpe Heizkreis 3"
+      },
+      "circulation_pump": {
+        "name": "Zirkulationspumpe"
+      },
+      "solar_valve_1": {
+        "name": "Solarventil 1"
+      },
+      "solar_valve_2": {
+        "name": "Solarventil 2"
+      },
+      "heating_circuit_1_mixer_open": {
+        "name": "Mischer Heizkreis 1 auf"
+      },
+      "heating_circuit_1_mixer_close": {
+        "name": "Mischer Heizkreis 1 zu"
+      },
+      "heating_circuit_2_mixer_open": {
+        "name": "Mischer Heizkreis 2 auf"
+      },
+      "heating_circuit_2_mixer_close": {
+        "name": "Mischer Heizkreis 2 zu"
+      },
+      "burner": {
+        "name": "Brenner"
+      },
+      "burner_s2": {
+        "name": "Brenner Stufe 2"
+      },
+      "oven_pump": {
+        "name": "Ofenpumpe"
+      },
+      "recovery": {
+        "name": "Ausgang A14"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Die SolvisRemote hat die Zugangsdaten abgelehnt"
+    },
+    "update_failed": {
+      "message": "Abfrage der SolvisRemote fehlgeschlagen: {error}"
+    }
+  }
 }
