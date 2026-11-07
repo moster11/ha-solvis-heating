@@ -1,12 +1,13 @@
 {
   "domain": "solvis_heating",
   "name": "Solvis Heating",
-  "codeowners": ["@moster11"],
+  "codeowners": [
+    "@moster11"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/moster11/ha-solvis-heating",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/moster11/ha-solvis-heating/issues",
   "requirements": [],
   "version": "1.0.0"
 }
