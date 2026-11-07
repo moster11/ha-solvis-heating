@@ -7,6 +7,11 @@ from unittest.mock import AsyncMock
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+)
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -178,3 +183,73 @@ async def test_reconfigure_flow(
     assert result["reason"] == "reconfigure_successful"
     assert config_entry.data["host"] == "192.168.50.91"
     assert config_entry.unique_id == "192.168.50.91"
+
+
+async def test_new_entry_adopts_removed_entities(
+    hass: HomeAssistant, mock_get_data: AsyncMock
+) -> None:
+    """Removing the old entry and adding a new one restores IDs, names and areas."""
+    old = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="a53a7b3c2ae952f60575af84bc0f2407",
+        title="Solvis Remote",
+        data={"host": HOST, "username": "solvis", "password": "secret"},
+    )
+    old.add_to_hass(hass)
+    area = ar.async_get(hass).async_create("Heizungskeller")
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=old.entry_id, identifiers={(DOMAIN, old.entry_id)}, name="Solvis Remote"
+    )
+    dr.async_get(hass).async_update_device(device.id, area_id=area.id)
+    registry = er.async_get(hass)
+    entity = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{old.entry_id}_temperature_buffer_heating_top",
+        suggested_object_id="solvis_remote_temperature_h_buffer_top",
+        config_entry=old,
+        device_id=device.id,
+    )
+    registry.async_update_entity(entity.entity_id, name="Heizungspuffer oben")
+    disabled = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{old.entry_id}_temperature_heating_circuit_2_flow",
+        suggested_object_id="solvis_remote_temperature_heating_circuit_2_flow",
+        config_entry=old,
+        disabled_by=er.RegistryEntryDisabler.USER,
+    )
+    await hass.config_entries.async_remove(old.entry_id)
+    assert registry.async_get(entity.entity_id) is None
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": HOST, "username": "solvis", "password": "secret"}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], FEATURES)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["registry_id"] == old.entry_id
+    await hass.async_block_till_done()
+
+    restored = registry.async_get("sensor.solvis_remote_temperature_h_buffer_top")
+    assert restored is not None
+    assert restored.config_entry_id == result["result"].entry_id
+    assert restored.name == "Heizungspuffer oben"
+    assert hass.states.get(restored.entity_id).state == "45.3"
+    assert registry.async_get(disabled.entity_id).disabled_by is er.RegistryEntryDisabler.USER
+
+    new_device = dr.async_get(hass).async_get(restored.device_id)
+    assert new_device.id == device.id
+    assert new_device.area_id == area.id
+
+
+async def test_new_entry_without_orphans_uses_entry_id(
+    hass: HomeAssistant, mock_get_data: AsyncMock
+) -> None:
+    """Without removed entities nothing is adopted."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": HOST, "username": "solvis", "password": "secret"}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], FEATURES)
+    assert "registry_id" not in result["data"]

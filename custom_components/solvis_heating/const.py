@@ -16,6 +16,9 @@ CONF_SOLAR: Final = "solar"
 CONF_SOLAR_EAST_WEST: Final = "east_west"
 CONF_OVEN: Final = "oven"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
+# Prefix of unique IDs and device identifier. Defaults to the entry ID; a new
+# entry adopts the prefix of a removed entry so HA restores its entities.
+CONF_REGISTRY_ID: Final = "registry_id"
 
 # Removed in 1.0.0, only read during migration.
 CONF_LEGACY_BURNER_POWER: Final = "burner_power"

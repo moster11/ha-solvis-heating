@@ -13,6 +13,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -27,6 +28,7 @@ import voluptuous as vol
 from .api import SolvisRemoteClient, normalize_host
 from .const import (
     CONF_OVEN,
+    CONF_REGISTRY_ID,
     CONF_SOLAR,
     CONF_SOLAR_EAST_WEST,
     CONF_UPDATE_INTERVAL,
@@ -99,6 +101,29 @@ def _normalize_options(user_input: dict[str, Any]) -> dict[str, Any]:
     return {**user_input, CONF_UPDATE_INTERVAL: int(user_input[CONF_UPDATE_INTERVAL])}
 
 
+def _orphaned_registry_id(hass: HomeAssistant) -> dict[str, str]:
+    """Return the registry ID of a removed entry whose entities HA still keeps.
+
+    When an entry is deleted, HA keeps the settings of its entities (entity ID,
+    name, area, ...) for 30 days and restores them if an entity with the same
+    unique_id appears again. A new entry adopts that prefix if it is unique.
+    """
+    in_use = {
+        entry.data.get(CONF_REGISTRY_ID, entry.entry_id)
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    }
+    prefixes = {
+        deleted.unique_id.split("_", 1)[0]
+        for (_, platform, _), deleted in er.async_get(hass).deleted_entities.items()
+        if platform == DOMAIN and deleted.config_entry_id is None and "_" in deleted.unique_id
+    } - in_use
+    if len(prefixes) == 1:
+        prefix = prefixes.pop()
+        _LOGGER.info("Adopting entities of removed entry %s", prefix)
+        return {CONF_REGISTRY_ID: prefix}
+    return {}
+
+
 async def _async_validate_connection(
     hass: HomeAssistant, user_input: Mapping[str, Any]
 ) -> tuple[str, dict[str, str]]:
@@ -161,7 +186,7 @@ class SolvisConfigFlow(ConfigFlow, domain=DOMAIN):
             if not errors:
                 return self.async_create_entry(
                     title=DEFAULT_TITLE,
-                    data=self._connection,
+                    data={**self._connection, **_orphaned_registry_id(self.hass)},
                     options=_normalize_options(user_input),
                 )
 

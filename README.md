@@ -42,6 +42,8 @@ Existing entries are migrated automatically on first start. Entity IDs, custom n
 
 The migration removes the two burner estimates, takes over the component selection and changes the old default interval of 10 s to 30 s.
 
+**Alternative: remove the old entry and add the integration again.** Since 1.0.1 a new entry adopts the entities of a removed Solvis entry (HA keeps their settings for 30 days): entity IDs, custom names, areas, disabled/hidden state and the device are restored, so history and statistics continue. Use this if HACS refuses to uninstall the old repository while the integration is set up.
+
 ## Entities
 
 | Key | Channel | Content |

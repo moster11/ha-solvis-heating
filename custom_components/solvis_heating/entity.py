@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     CONF_OVEN,
+    CONF_REGISTRY_ID,
     CONF_SOLAR,
     CONF_SOLAR_EAST_WEST,
     CONF_WARMWATER_STATION,
@@ -82,10 +83,11 @@ class SolvisEntity(CoordinatorEntity[SolvisCoordinator]):
         self.entity_description = description
         entry = coordinator.config_entry
         # unique_id format of 0.0.x is kept so entity IDs stay unchanged.
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        registry_id = entry.data.get(CONF_REGISTRY_ID, entry.entry_id)
+        self._attr_unique_id = f"{registry_id}_{description.key}"
         data = coordinator.data
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
+            identifiers={(DOMAIN, registry_id)},
             manufacturer=MANUFACTURER,
             model=DEVICE_MODEL,
             model_id=str(data.device_type),
