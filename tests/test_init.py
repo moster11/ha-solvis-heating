@@ -148,19 +148,82 @@ async def test_failure_tolerance(
     assert hass.states.get(entity_id).state == "on"
 
 
-async def test_auth_failure_starts_reauth(
+async def test_single_auth_failure_is_tolerated(
     hass: HomeAssistant,
     mock_get_data: AsyncMock,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
-    """Rejected credentials start the reauth flow."""
+    """A sporadic 401 while running keeps the values and does not start reauth."""
     await _setup(hass, config_entry)
-    mock_get_data.side_effect = SolvisAuthError
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "binary_sensor", DOMAIN, f"{config_entry.entry_id}_burner"
+    )
+    mock_get_data.side_effect = [SolvisAuthError("401"), SolvisAuthError("401")]
+
+    for _ in range(2):
+        freezer.tick(timedelta(seconds=30))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        assert hass.states.get(entity_id).state == "on"
+
+    mock_get_data.side_effect = None
     freezer.tick(timedelta(seconds=30))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == "on"
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+    assert config_entry.state is ConfigEntryState.LOADED
 
+
+async def test_repeated_auth_failure_starts_reauth(
+    hass: HomeAssistant,
+    mock_get_data: AsyncMock,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Credentials rejected three times in a row start the reauth flow."""
+    await _setup(hass, config_entry)
+    mock_get_data.side_effect = SolvisAuthError("401")
+    for _ in range(3):
+        freezer.tick(timedelta(seconds=30))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [flow["context"]["source"] for flow in flows] == ["reauth"]
+
+
+async def test_mixed_failures_do_not_start_reauth(
+    hass: HomeAssistant,
+    mock_get_data: AsyncMock,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Auth rejections only count when they happen in a row."""
+    await _setup(hass, config_entry)
+    mock_get_data.side_effect = [
+        SolvisAuthError("401"),
+        SolvisAuthError("401"),
+        SolvisConnectionError("timeout"),
+        SolvisAuthError("401"),
+    ]
+    for _ in range(4):
+        freezer.tick(timedelta(seconds=30))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
+async def test_auth_failure_on_setup_starts_reauth(
+    hass: HomeAssistant, mock_get_data: AsyncMock, config_entry: MockConfigEntry
+) -> None:
+    """Rejected credentials during setup start reauth immediately."""
+    mock_get_data.side_effect = SolvisAuthError("401")
+    config_entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert [flow["context"]["source"] for flow in flows] == ["reauth"]
 

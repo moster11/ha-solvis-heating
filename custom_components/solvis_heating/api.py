@@ -27,6 +27,8 @@ class SolvisRemoteClient:
         """Initialize the client."""
         self._session = session
         self.host = normalize_host(host)
+        self._username = username
+        self._password = password
         self._auth = DigestAuthMiddleware(username, password)
 
     @property
@@ -35,7 +37,19 @@ class SolvisRemoteClient:
         return f"http://{self.host}"
 
     async def async_get_data(self) -> SolvisData:
-        """Fetch and decode the current values."""
+        """Fetch and decode the current values.
+
+        A rejected request is retried once with a fresh digest state, since
+        the SolvisRemote sometimes answers 401 to a valid but stale nonce.
+        """
+        try:
+            document = await self._async_fetch()
+        except SolvisAuthError:
+            self._auth = DigestAuthMiddleware(self._username, self._password)
+            document = await self._async_fetch()
+        return parse_payload(extract_payload(document))
+
+    async def _async_fetch(self) -> str:
         try:
             async with self._session.get(
                 f"{self.url}{_PATH}",
@@ -46,8 +60,6 @@ class SolvisRemoteClient:
                     raise SolvisAuthError(f"authentication failed ({response.status})")
                 if response.status != 200:
                     raise SolvisConnectionError(f"unexpected HTTP status {response.status}")
-                document = await response.text(errors="replace")
+                return await response.text(errors="replace")
         except (ClientError, TimeoutError) as err:
             raise SolvisConnectionError(str(err) or type(err).__name__) from err
-
-        return parse_payload(extract_payload(document))

@@ -138,3 +138,33 @@ async def test_unreachable() -> None:
 def test_normalize_host(value: str, expected: str) -> None:
     """User input is reduced to host[:port]."""
     assert normalize_host(value) == expected
+
+
+async def test_sporadic_401_is_retried() -> None:
+    """Valid credentials rejected twice (incl. the digest retry) are retried with a fresh state."""
+    inner = _digest_app("solvis", "solvis", f"<xml><data>{load_payload()}</data></xml>")
+    handler = inner.router.routes()._routes[0].handler
+    calls = {"authorized": 0}
+
+    async def flaky(request: web.Request) -> web.Response:
+        if request.headers.get("Authorization", "").startswith("Digest "):
+            calls["authorized"] += 1
+            if calls["authorized"] in (2, 3):
+                return web.Response(
+                    status=401,
+                    headers={
+                        "WWW-Authenticate": f'Digest realm="{REALM}", nonce="other", qop="auth"'
+                    },
+                )
+        return await handler(request)
+
+    app = web.Application()
+    app.router.add_get("/sc2_val.xml", flaky)
+    server, session, client = await _client_for(app)
+    try:
+        await client.async_get_data()
+        data = await client.async_get_data()
+    finally:
+        await session.close()
+        await server.close()
+    assert data.get("S1") == 54.1

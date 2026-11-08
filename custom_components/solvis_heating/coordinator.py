@@ -47,33 +47,50 @@ class SolvisCoordinator(DataUpdateCoordinator[SolvisData]):
         self.client = client
         self.last_success: datetime | None = None
         self._failures = 0
+        self._auth_failures = 0
 
     async def _async_update_data(self) -> SolvisData:
-        """Fetch new data; tolerate a few failed polls in a row."""
+        """Fetch new data; tolerate a few failed polls in a row.
+
+        The SolvisRemote occasionally rejects a single request with 401 even
+        though the credentials are valid. A rejection while running is
+        therefore treated like any other failed poll; re-authentication is
+        only requested when the credentials are rejected during setup or
+        several times in a row.
+        """
         try:
             data = await self.client.async_get_data()
         except SolvisAuthError as err:
-            raise ConfigEntryAuthFailed(
-                translation_domain=DOMAIN, translation_key="auth_failed"
-            ) from err
+            self._auth_failures += 1
+            if self.data is None or self._auth_failures >= MAX_CONSECUTIVE_FAILURES:
+                raise ConfigEntryAuthFailed(
+                    translation_domain=DOMAIN, translation_key="auth_failed"
+                ) from err
+            return self._handle_failure(err)
         except SolvisError as err:
-            self._failures += 1
-            if self.data is not None and self._failures < MAX_CONSECUTIVE_FAILURES:
-                _LOGGER.debug(
-                    "Poll %s/%s failed, keeping last values: %s",
-                    self._failures,
-                    MAX_CONSECUTIVE_FAILURES,
-                    err,
-                )
-                return self.data
-            raise UpdateFailed(
-                translation_domain=DOMAIN,
-                translation_key="update_failed",
-                translation_placeholders={"error": str(err)},
-            ) from err
+            self._auth_failures = 0
+            return self._handle_failure(err)
 
         if self._failures:
             _LOGGER.debug("Poll succeeded again after %s failure(s)", self._failures)
         self._failures = 0
+        self._auth_failures = 0
         self.last_success = dt_util.utcnow()
         return data
+
+    def _handle_failure(self, err: SolvisError) -> SolvisData:
+        """Keep the last values for a few failed polls, then mark unavailable."""
+        self._failures += 1
+        if self.data is not None and self._failures < MAX_CONSECUTIVE_FAILURES:
+            _LOGGER.debug(
+                "Poll %s/%s failed, keeping last values: %s",
+                self._failures,
+                MAX_CONSECUTIVE_FAILURES,
+                err,
+            )
+            return self.data
+        raise UpdateFailed(
+            translation_domain=DOMAIN,
+            translation_key="update_failed",
+            translation_placeholders={"error": str(err)},
+        ) from err
